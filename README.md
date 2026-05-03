@@ -1,35 +1,38 @@
 # SycTeam
 
-A full-stack project and task management app built for the assignment:
+SycTeam is a full-stack project and task management application with role-based collaboration, task tracking, and live deployment on Railway.
 
-- FastAPI REST API
-- React frontend
-- PostgreSQL database
-- Signup/login authentication
-- Project membership with `Admin` and `Member` roles
-- Task creation, assignment, status tracking, and overdue dashboard
-- Railway-ready deployment config
+## Live Deployment
+
+- App URL: https://sycteam-web-production.up.railway.app
+- Health check: https://sycteam-web-production.up.railway.app/api/health
 
 ## Features
 
-Admins can create projects, add team members by email, assign roles, and create tasks. Members can view projects they belong to and update task status. The dashboard shows total projects, total tasks, completed tasks, and overdue tasks.
+- Authentication with signup/login and bearer token sessions
+- Role-based access with `Admin` and `Member` project memberships
+- Project management: create and delete projects (admin only)
+- Team management: add/update project members by email and role
+- Task management: create tasks, assign members, update statuses, and due dates
+- Dashboard metrics for projects, total tasks, done tasks, and overdue tasks
+- Improved UI for project workspace, team panel, task form, and task cards
 
 ## Tech Stack
 
 - Backend: FastAPI, SQLAlchemy, Pydantic
 - Frontend: React, Vite, lucide-react
 - Database: PostgreSQL
-- Deployment: Railway with Nixpacks
+- Deployment: Railway + Docker
 
 ## Local Setup
 
-Make sure your local PostgreSQL server is running and that this database exists:
+1. Ensure local PostgreSQL is running and a database exists, for example:
 
 ```text
 postgresql://postgres:Rohit17240@localhost:5432/taskManager
 ```
 
-Create the backend environment file:
+2. Create backend environment file:
 
 ```bash
 cd backend
@@ -37,58 +40,49 @@ cp .env.example .env
 cd ..
 ```
 
-Install backend dependencies:
+3. Install backend dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-Run the API from the repository root:
+4. Run backend API:
 
 ```bash
-uvicorn backend.app.main:app --reload
+python -m uvicorn backend.app.main:app --reload --port 8001
 ```
 
-Run the frontend in another terminal:
+5. Run frontend in another terminal:
 
 ```bash
 cd frontend
 npm install
-npm run dev
+VITE_API_URL=http://127.0.0.1:8001/api npm run dev
 ```
 
-Frontend runs at `http://localhost:5173`; API runs at `http://localhost:8000`.
+Frontend runs at `http://localhost:5173`.
 
-## Railway Deployment
+## Railway Configuration
 
-1. Push this repository to GitHub.
-2. Create a new Railway project from the GitHub repo.
-3. Add a Railway PostgreSQL database.
-4. Set these environment variables on the web service:
+The app is configured for Railway with:
 
-```text
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-SECRET_KEY=use-a-long-random-secret
-```
-
-5. Railway will use `nixpacks.toml` to install Python and Node dependencies, build React, and start FastAPI.
+- `Dockerfile` for deterministic Python + frontend build/runtime
+- `nixpacks.toml` for build settings
+- Environment variables on `sycteam-web` service:
+  - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+  - `SECRET_KEY=<long-random-secret>`
+  - `DB_SCHEMA=team_task_manager_app`
 
 ## API Overview
 
 - `POST /api/auth/signup` - create account
 - `POST /api/auth/login` - login and receive bearer token
 - `GET /api/projects` - list user projects
-- `POST /api/projects` - create project as Admin
+- `POST /api/projects` - create project (admin)
+- `DELETE /api/projects/{project_id}` - delete project (admin)
 - `GET /api/projects/{project_id}/members` - list project members
-- `POST /api/projects/{project_id}/members` - add/update member, Admin only
+- `POST /api/projects/{project_id}/members` - add/update member (admin)
 - `GET /api/tasks?project_id=1` - list tasks
-- `POST /api/projects/{project_id}/tasks` - create task, Admin only
-- `PATCH /api/tasks/{task_id}` - update task; Members can update status only
-- `GET /api/dashboard` - task and project metrics
-
-## Submission Checklist
-
-- Live URL: add Railway URL here after deployment
-- GitHub repo: add repository URL here
-- README: included
-- Demo video: record signup, project creation, adding a member, creating a task, status update, and dashboard
+- `POST /api/projects/{project_id}/tasks` - create task (admin)
+- `PATCH /api/tasks/{task_id}` - update task; members can only update status
+- `GET /api/dashboard` - project and task metrics

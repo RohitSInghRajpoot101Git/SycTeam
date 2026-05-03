@@ -28,7 +28,7 @@ from .security import create_token, hash_password, read_token, verify_password
 
 init_db()
 
-app = FastAPI(title="Team Task Manager API")
+app = FastAPI(title="SycTeam API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -132,6 +132,16 @@ def get_project(project_id: int, user: User = Depends(current_user), db: Session
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return project_out(project, project_role(db, project_id, user.id))
+
+
+@app.delete("/api/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(project_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    require_admin(db, project_id, user.id)
+    db.delete(project)
+    db.commit()
 
 
 @app.get("/api/projects/{project_id}/members", response_model=list[MemberOut])

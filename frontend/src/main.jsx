@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CheckCircle2, ClipboardList, FolderKanban, LogOut, Plus, Users } from 'lucide-react';
+import { CheckCircle2, ClipboardList, FolderKanban, LogOut, Plus, Trash2, Users } from 'lucide-react';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL || '/api';
@@ -34,7 +34,7 @@ function App() {
         <section className="auth-panel">
           <div>
             <p className="eyebrow">Full-stack assignment</p>
-            <h1>Team Task Manager</h1>
+            <h1>SycTeam</h1>
             <p className="muted">Create projects, assign work, and track progress with Admin and Member access.</p>
           </div>
           <div className="tabs">
@@ -119,10 +119,11 @@ function Workspace({ token, user, onLogout }) {
   const submitProject = async (event) => {
     event.preventDefault();
     setMessage('');
+    const formEl = event.currentTarget;
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formEl);
       const project = await api('/projects', { method: 'POST', body: Object.fromEntries(form.entries()) });
-      event.currentTarget.reset();
+      formEl?.reset();
       await load(project.id);
     } catch (err) {
       handleError(err);
@@ -132,10 +133,11 @@ function Workspace({ token, user, onLogout }) {
   const submitMember = async (event) => {
     event.preventDefault();
     setMessage('');
+    const formEl = event.currentTarget;
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formEl);
       await api(`/projects/${selectedId}/members`, { method: 'POST', body: Object.fromEntries(form.entries()) });
-      event.currentTarget.reset();
+      formEl?.reset();
       await loadProjectData();
     } catch (err) {
       handleError(err);
@@ -145,13 +147,14 @@ function Workspace({ token, user, onLogout }) {
   const submitTask = async (event) => {
     event.preventDefault();
     setMessage('');
+    const formEl = event.currentTarget;
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formEl);
       const body = Object.fromEntries(form.entries());
       body.assignee_id = body.assignee_id ? Number(body.assignee_id) : null;
       body.due_date = body.due_date || null;
       await api(`/projects/${selectedId}/tasks`, { method: 'POST', body });
-      event.currentTarget.reset();
+      formEl?.reset();
       await Promise.all([load(), loadProjectData()]);
     } catch (err) {
       handleError(err);
@@ -168,12 +171,26 @@ function Workspace({ token, user, onLogout }) {
     }
   };
 
+  const deleteSelectedProject = async () => {
+    if (!selectedProject) return;
+    const confirmed = window.confirm(`Delete project "${selectedProject.name}"? This removes all its tasks and members.`);
+    if (!confirmed) return;
+    setMessage('');
+    try {
+      await api(`/projects/${selectedProject.id}`, { method: 'DELETE' });
+      await load();
+      setMessage('Project deleted');
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div>
           <p className="eyebrow">Signed in as {user?.name}</p>
-          <h1>Team Task Manager</h1>
+          <h1>SycTeam</h1>
         </div>
         <button className="ghost" onClick={onLogout}><LogOut size={18} /> Logout</button>
       </header>
@@ -219,12 +236,19 @@ function Workspace({ token, user, onLogout }) {
                   <h2>{selectedProject.name}</h2>
                   <p className="muted">{selectedProject.description || 'No description added.'}</p>
                 </div>
-                <span className="badge">{selectedProject.role}</span>
+                <div className="project-actions">
+                  <span className="badge">{selectedProject.role}</span>
+                  {selectedProject.role === 'Admin' && (
+                    <button className="danger-btn" onClick={deleteSelectedProject} type="button">
+                      <Trash2 size={16} /> Delete project
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="split">
-                <form onSubmit={submitTask} className="stack framed">
-                  <h3>New task</h3>
+                <form onSubmit={submitTask} className="stack framed task-form">
+                  <h3 className="form-title">New task</h3>
                   <input name="title" placeholder="Task title" required minLength="2" />
                   <textarea name="description" placeholder="Description" rows="3" />
                   <select name="assignee_id">
@@ -235,14 +259,14 @@ function Workspace({ token, user, onLogout }) {
                   <button className="primary" type="submit"><Plus size={17} /> Add task</button>
                 </form>
 
-                <form onSubmit={submitMember} className="stack framed">
-                  <h3><Users size={17} /> Team</h3>
+                <form onSubmit={submitMember} className="stack framed member-form">
+                  <h3 className="form-title"><Users size={17} /> Team</h3>
                   <input name="email" placeholder="Member email" type="email" required />
                   <select name="role" defaultValue="Member">
                     <option>Member</option>
                     <option>Admin</option>
                   </select>
-                  <button type="submit">Add or update member</button>
+                  <button className="member-btn" type="submit">Add or update member</button>
                   <div className="member-list">
                     {members.map((member) => <p key={member.id}>{member.user.name} <span>{member.role}</span></p>)}
                   </div>
@@ -250,6 +274,7 @@ function Workspace({ token, user, onLogout }) {
               </div>
 
               <div className="tasks">
+                <h3 className="tasks-title">Project tasks</h3>
                 {tasks.map((task) => (
                   <article className="task-card" key={task.id}>
                     <div>
