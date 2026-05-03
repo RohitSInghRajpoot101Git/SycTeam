@@ -1,4 +1,4 @@
-# Team Task Manager
+# SycTean
 
 A full-stack project and task management app built for the assignment:
 
