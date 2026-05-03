@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+.python-deps/
+.venv-check/
+node_modules/
+dist/
+.railway/
+task_manager.db
+verification.db
